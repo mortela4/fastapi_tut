@@ -40,9 +40,11 @@ class SensorHub(db.Entity):
     channels = Set(ChannelData)
     
 
-# Create database tables:
+# Create database tables (required before calling 'db_session' functions):
 db.generate_mapping(create_tables=True)
 
+
+# *************************************************** DB-load&store functions ************************************************************* 
 
 # Create sensor entities:
 @db_session
@@ -96,9 +98,8 @@ def get_entities_and_show_fields():
             for ch in hub.channels:
                 print(f"\t{ch.from_channel.name}")
 
-"""
 @db_session
-def add_data_to_hub(id: int = -1, tsd: list = None) -> None:
+def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None:
     hub = None
     if id < 0:
         print("Invalid ID given! Cannot proceed ...")
@@ -116,14 +117,16 @@ def add_data_to_hub(id: int = -1, tsd: list = None) -> None:
         print(f"Query for 'SensorHub' entity w. ID {id} exploded!! Reason: {ex}")
         return
     #
-    for ts_point in tsd:
-        time_point, data_point = ts_point
-        #
-        hub.time_points.append(time_point) 
-        hub.data_points.append(data_point)
+    for channel in hub.channels:
+        if channel.from_channel.name == ch_name:
+            for ts_point in tsd:
+                time_point, data_point = ts_point
+                channel.time_points.append(time_point) 
+                channel.data_points.append(data_point)
     #
     print(f"Added {len(tsd)} data-points to hub entity ...")
 
+"""
 @db_session
 def show_data_from_hub(id: int = -1) -> None:
     hub = None
@@ -175,10 +178,13 @@ if __name__ == "__main__":
     create_channels_and_hubs()
     create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA280_temp', 'ADXL255_accel', 'FXS3008_pressure'])
     create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA280_temp'])
+    #
     get_entities_and_show_fields()
-    # ts_data = generate_dummy_data()
-    # add_data_to_hub(id=533, tsd=ts_data)
-    # show_data_from_hub(id=533)
+    #
+    ts_data = generate_dummy_data()
+    add_data_to_hub(id=777, ch_name='BMA280_temp', tsd=ts_data)
+    #
+    #show_data_from_hub(id=777)
 
     # Finalize
     db.disconnect()
