@@ -278,9 +278,28 @@ def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int
     return time_series_data
 
 
+def fix_gc_setup():
+    """
+    Fixes setup of Python's GarbageCollector('gc') - improves run of smaller applications - but startup may take a little longer.
+    """
+    import gc
+    # Clean up what might be garbage so far.
+    gc.collect(2)
+    # Exclude current items from future GC.
+    gc.freeze()
+    #
+    allocs, gen1, gen2 = gc.get_threshold()
+    allocs = 50_000  # Start the GC sequence every 50K not 700 allocations.
+    gen1 = gen1 * 2
+    gen2 = gen2 * 2
+    gc.set_threshold(allocs, gen1, gen2)
+
+
 # ***************************** FUNCTIONAL TEST ******************************************
 
 if __name__ == "__main__":
+    fix_gc_setup()
+    #
     # Create database tables (required before calling 'db_session' functions):
     db.generate_mapping(create_tables=True)
     # Fill DB w. stuff ...
