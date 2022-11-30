@@ -4,6 +4,7 @@ DB model of cyper-physical system w. sensors(IN-values) and actuators(OUT-values
 
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
 import time
+from datetime import datetime
 import random
 from dataclasses import dataclass, asdict, field
 
@@ -30,6 +31,7 @@ class Channel(db.Entity):
 
 class ChannelData(db.Entity):
     ch_id = PrimaryKey(int, auto=True)
+    start_time = Optional(float, default=0.0)
     time_points = Optional(FloatArray)
     data_points = Optional(FloatArray)
     from_channel = Required(Channel)
@@ -52,6 +54,7 @@ class SensorData():
     ch_desc: str = str()
     ch_id: int = int()
     unit: str = str()
+    start_datetime: float = 0.0
     data: list = field(default_factory=list)    # List of time-val, sample-val tuples
 
     def info(self):
@@ -63,15 +66,19 @@ class SensorData():
         print(f"Channel name: {self.ch_name}")
         print(f"Description: {self.ch_desc}")
         print(f"Channel ID: {self.ch_id}")
+        print(f"START-time (first sample): {datetime.fromtimestamp(self.start_datetime)}")
 
     def show(self):
         self.info()
         #
         print("----------------------------------------------------------------")
         print("Data:")
-        for tv_pair in self.data:
-            time_val, sample_val = tv_pair
-            print(f"Time: {time_val:.3f}\t\tValue = {sample_val:.3f} {self.unit}")
+        for time_val, sample_val in self.data:
+            #time_val, sample_val = tv_pair
+            # Get Epoch-time (i.e. 'absolute' time) from START-time + delta-time:
+            absolute_date_time = self.start_datetime + time_val
+            #
+            print(f"DateTime: {datetime.fromtimestamp(absolute_date_time)}\t\tValue = {sample_val:.3f} {self.unit}")
         print("----------------------------------------------------------------\n")
 
     def get(self):
@@ -138,9 +145,11 @@ def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None
     channel_query = hub.channels.select(lambda cd: cd.from_channel.name == ch_name)
     channel = channel_query.first()
     if channel:
+        if channel.start_time == 0:
+            channel.start_time = time.time()
         for ts_point in tsd:
             time_point, data_point = ts_point
-            channel.time_points.append(time_point) 
+            channel.time_points.append(time_point - channel.start_time)     # Store delta-time = offset from START-time!
             channel.data_points.append(data_point)
         print(f"Added {len(tsd)} data-points to channel '{ch_name}' of hub entity {id} named '{hub.name}' ...\n")
     else:
@@ -248,24 +257,24 @@ def get_sensor_data(hub_id: int = -1, ch_name: str = None) -> None:
     # Get channel attributes:
     unit = channel.from_channel.si_unit
     description = channel.from_channel.description 
+    start_time = channel.start_time
     ch_id = channel.ch_id
     x_vals = channel.time_points
     y_vals = channel.data_points
     # Make data-tuple:
     time_series_data = list(zip(x_vals, y_vals))    # TODO: make an additional 'TimeSeriesDataPoint' dataclass?
     #
-    return SensorData(hub_name=hub.name, hub_id=hub_id, ch_name=ch_name, ch_desc=description, ch_id=ch_id, unit=unit, data=time_series_data)
+    return SensorData(hub_name=hub.name, hub_id=hub_id, ch_name=ch_name, ch_desc=description, ch_id=ch_id, unit=unit, start_datetime=start_time, data=time_series_data)
 
 
 # ******************************************************* Test-helpers: ********************************************************************
 
 def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int = 100, factor: float = 0.025) -> list:
-    start_time = time.time()
     time_points = list()
     data_points = list()
     #
     for _ in range(num_samples):
-        time_point = time.time() - start_time
+        time_point = time.time()
         time_points.append(time_point)
         #
         data_point = random.randint(min_val, max_val) * factor
