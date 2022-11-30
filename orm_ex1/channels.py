@@ -23,8 +23,8 @@ class Channel(db.Entity):
     description = Optional(str, default="<sensor IN-type>" if is_output else "<actuator OUT-type>")
     si_unit = Optional(str, default="<unitless>")
     scale_factor = Optional(float, default=1.0)
-    # sample_freq = Optional(float, default=1.0)    --> Hz
-    # num_bits = Optional(int, default=16)          --> TODO: relevant???
+    sample_freq = Optional(float, default=1.0)    # --> Hz
+    num_bits = Optional(int, default=16)          # --> TODO: relevant???
     ch_data_sources = Set("ChannelData")
 
 class ChannelData(db.Entity):
@@ -49,14 +49,15 @@ db.generate_mapping(create_tables=True)
 # Create sensor entities:
 @db_session
 def create_channels_and_hubs():
-    bma380_temp = Channel(name="BMA280_temp", si_unit="Celcius")
+    bma380_temp = Channel(name="BMA380_temp", si_unit="°C", description="BMA380 temperature reading")
     adxl255_accel = Channel(name="ADXL255_accel")
     fxs3008_pressure = Channel(name="FXS3008_pressure", si_unit="Bar")
+    bma380_humidity = Channel(name="BMA380_humidity", si_unit="%", description="BMA380 humidity reading")
     # Then sensor-hub entities ...
     SensorHub(ser_no=123, name="TestHub1", channels=(ChannelData(from_channel=bma380_temp)))
     SensorHub(ser_no=223, name="TestHub2", channels=(ChannelData(from_channel=bma380_temp), ChannelData(from_channel=adxl255_accel)))
     SensorHub(ser_no=323, name="TestHub3", channels=(ChannelData(from_channel=bma380_temp), ChannelData(from_channel=fxs3008_pressure)))
-    SensorHub(ser_no=533, name="TestHub4", channels=(ChannelData(from_channel=bma380_temp)))
+    SensorHub(ser_no=533, name="TestHub4", channels=(ChannelData(from_channel=bma380_humidity)))
 
 
 # Create a single SensorHub entity
@@ -99,14 +100,16 @@ def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None
         print(f"Query for 'SensorHub' entity w. ID {id} exploded!! Reason: {ex}")
         return
     #
-    for channel in hub.channels:
-        if channel.from_channel.name == ch_name:
-            for ts_point in tsd:
-                time_point, data_point = ts_point
-                channel.time_points.append(time_point) 
-                channel.data_points.append(data_point)
-    #
-    print(f"Added {len(tsd)} data-points to hub entity ...")
+    channel_query = hub.channels.select(lambda cd: cd.from_channel.name == ch_name)
+    channel = channel_query.first()
+    if channel:
+        for ts_point in tsd:
+            time_point, data_point = ts_point
+            channel.time_points.append(time_point) 
+            channel.data_points.append(data_point)
+        print(f"Added {len(tsd)} data-points to channel '{ch_name}' of hub entity {id} named '{hub.name}' ...\n")
+    else:
+        print(f"ERROR: channel named '{ch_name}' NOT found! Could not add data ...\n")
 
 
 # *************************************************** DB 'LOAD' functions ************************************************************* 
@@ -166,15 +169,18 @@ def show_data_from_hub(id: int = -1, ch_name: str = None) -> None:
         y_vals = channel.data_points
         num_time_values = len(x_vals)
         num_data_values = len(y_vals)
+        if num_time_values == 0:
+            print(f"WARN: no data for channel '{current_channel_name}'...")
+            continue
         if num_time_values != num_data_values:
             print(f"ERROR: data inconsistency - {num_time_values} time values != {num_data_values} data values!! Cannot show data for channel '{current_channel_name}'...")
             continue
         # Show data:
-        print(f"\nData from channel {current_channel_name}:")
-        print("------------------------------------------")
+        print(f"\nChannel {current_channel_name} (description: '{channel.from_channel.description}') data:")
+        print("-------------------------------------------------------------------------------------------------")
         for idx in range(num_time_values):
-            print(f"Sample {idx}: time = {x_vals[idx]}, value = {y_vals[idx]} {unit}")
-        print("------------------------------------------\n")
+            print(f"Sample {idx}: time = {x_vals[idx]:.3f}, value = {y_vals[idx]:.3f} {unit}")
+        print("-----------------------------------------------------------------------------------------------\n")
     #
     if not found_channel:
         print(f"INFO: did not find channel named '{ch_name}'!")
@@ -205,17 +211,26 @@ def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int
 
 if __name__ == "__main__":
     create_channels_and_hubs()
-    create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA280_temp', 'ADXL255_accel', 'FXS3008_pressure'])
-    create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA280_temp'])
+    create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA380_temp', 'ADXL255_accel', 'FXS3008_pressure'])
+    create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA380_temp'])
     #
     get_hubs_and_show_info()
-    #
+    # Add TEMP-data:
     ts_data = generate_dummy_data()
-    add_data_to_hub(id=777, ch_name='BMA280_temp', tsd=ts_data)
-    #
+    add_data_to_hub(id=777, ch_name='BMA380_temp', tsd=ts_data)
+    # Check 1:
     show_data_from_hub(id=777)
-    show_data_from_hub(id=777, ch_name='BMA280_temp')   # OK
-    show_data_from_hub(id=777, ch_name='BMA380_temp')   # Should FAIL!
+    show_data_from_hub(id=777, ch_name='BMA380_temp')       # OK
+    # Check 2:
+    show_data_from_hub(id=533, ch_name='BMA380_humidity')   # OK --> but no data
+    # 
+    # Add TEMP-data:
+    ts_data = generate_dummy_data(num_samples=15, min_val=15, max_val=96, factor=0.99)
+    add_data_to_hub(id=533, ch_name='BMA380_humidity', tsd=ts_data)
+    # Check 3:
+    show_data_from_hub(id=533, ch_name='BMA380_humidity')   # OK --> has data now ...
+    # Check 4:
+    show_data_from_hub(id=533, ch_name='BMA280_temp')       # Should FAIL! (non-existent channel-name ...)
     # Finalize
     db.disconnect()
 
