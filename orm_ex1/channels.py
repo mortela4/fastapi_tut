@@ -44,7 +44,7 @@ class SensorHub(db.Entity):
 db.generate_mapping(create_tables=True)
 
 
-# *************************************************** DB-load&store functions ************************************************************* 
+# *************************************************** DB 'STORE' functions ************************************************************* 
 
 # Create sensor entities:
 @db_session
@@ -80,24 +80,6 @@ def create_sensor_hub(hub_name: str, ser_no: int, ch_names: list) -> None:
     SensorHub(ser_no=ser_no, name=hub_name, channels=ch_data_set)   
 
 
-# Retrieve from DB:
-@db_session
-def get_entities_and_show_fields():
-    peticular_hub = SensorHub[123]                              # Retrieve single entity
-    print(f"Name of hub w. serial no.123: {peticular_hub.name}\n")
-    #
-    hubs = SensorHub.select(lambda hub: hub.ser_no > 200)       # Retrieve multiple entitities
-    print("All hubs with serial no. over 200:")
-    for hub in hubs:
-        print(f"{hub.name}")
-        print(f"SerNo = {hub.ser_no}")
-        if 0 == len(hub.channels):
-            print("No channels??")
-        else:
-            print("Channels:")
-            for ch in hub.channels:
-                print(f"\t{ch.from_channel.name}")
-
 @db_session
 def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None:
     hub = None
@@ -126,9 +108,32 @@ def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None
     #
     print(f"Added {len(tsd)} data-points to hub entity ...")
 
-"""
+
+# *************************************************** DB 'LOAD' functions ************************************************************* 
+
+# Retrieve from DB:
 @db_session
-def show_data_from_hub(id: int = -1) -> None:
+def get_hubs_and_show_info():
+    hubs = SensorHub.select(lambda hub: hub.ser_no)       # Retrieve ALL SensorHub-entitities
+    num_hubs = len(hubs)
+    print(f"All {num_hubs} SensorHub-entities:")
+    print("------------------------------------------")
+    for hub in hubs:
+        print(f"Name = {hub.name}")
+        print(f"SerNo = {hub.ser_no}")
+        if 0 == len(hub.channels):
+            print("No channels??")
+        else:
+            print("Channels:")
+            for ch in hub.channels:
+                print(f"\t{ch.from_channel.name}")
+        print("------------------------------------------")
+    #
+    print("\n")
+
+
+@db_session
+def show_data_from_hub(id: int = -1, ch_name: str = None) -> None:
     hub = None
     if id < 0:
         print("Invalid ID given! Cannot proceed ...")       # Redundant - will be caught by exception-check below anyway, but OK here ...
@@ -143,13 +148,37 @@ def show_data_from_hub(id: int = -1) -> None:
         print(f"Query for 'SensorHub' entity w. ID {id} exploded!! Resaon: {ex}")
         return
     #
-    x_vals = hub.time_points
-    y_vals = hub.data_points
+    found_channel = False
+    for channel in hub.channels:
+        # Get associated channel-data's channel name:
+        current_channel_name = channel.from_channel.name
+        if ch_name:
+            # If a specific name is given, show data ONLY from this channel - else show all channels:
+            if current_channel_name != ch_name:
+                continue
+            else:
+                found_channel = True
+        else:
+            found_channel = True
+        # Get channel SI-unit
+        unit = channel.from_channel.si_unit
+        x_vals = channel.time_points
+        y_vals = channel.data_points
+        num_time_values = len(x_vals)
+        num_data_values = len(y_vals)
+        if num_time_values != num_data_values:
+            print(f"ERROR: data inconsistency - {num_time_values} time values != {num_data_values} data values!! Cannot show data for channel '{current_channel_name}'...")
+            continue
+        # Show data:
+        print(f"\nData from channel {current_channel_name}:")
+        print("------------------------------------------")
+        for idx in range(num_time_values):
+            print(f"Sample {idx}: time = {x_vals[idx]}, value = {y_vals[idx]} {unit}")
+        print("------------------------------------------\n")
     #
-    num_samples = len(x_vals)
-    for idx in range(num_samples):
-        print(f"Sample {idx}: time = {x_vals[idx]}, value = {y_vals[idx]}")
-"""
+    if not found_channel:
+        print(f"INFO: did not find channel named '{ch_name}'!")
+
 
 # Test-helpers:
 
@@ -179,13 +208,14 @@ if __name__ == "__main__":
     create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA280_temp', 'ADXL255_accel', 'FXS3008_pressure'])
     create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA280_temp'])
     #
-    get_entities_and_show_fields()
+    get_hubs_and_show_info()
     #
     ts_data = generate_dummy_data()
     add_data_to_hub(id=777, ch_name='BMA280_temp', tsd=ts_data)
     #
-    #show_data_from_hub(id=777)
-
+    show_data_from_hub(id=777)
+    show_data_from_hub(id=777, ch_name='BMA280_temp')   # OK
+    show_data_from_hub(id=777, ch_name='BMA380_temp')   # Should FAIL!
     # Finalize
     db.disconnect()
 
