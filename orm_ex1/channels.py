@@ -5,6 +5,7 @@ DB model of cyper-physical system w. sensors(IN-values) and actuators(OUT-values
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
 import time
 import random
+from dataclasses import dataclass, asdict, field
 
 SQL_DEBUG = False
 
@@ -15,7 +16,7 @@ db.bind('sqlite', ':memory:')   # In-memory SQLite DB only --> for testing ...
 if SQL_DEBUG:
     set_sql_debug()
 
-# Model:
+# Models:
 
 class Channel(db.Entity):
     name = PrimaryKey(str)
@@ -40,8 +41,42 @@ class SensorHub(db.Entity):
     channels = Set(ChannelData)
     
 
-# Create database tables (required before calling 'db_session' functions):
-db.generate_mapping(create_tables=True)
+# Helper data structures:
+
+@dataclass
+class SensorData():
+    """ Dataclass for passing sensor-data around outside DB """
+    hub_name: str = str()
+    hub_id: int = 0
+    ch_name: str = str()
+    ch_desc: str = str()
+    ch_id: int = int()
+    unit: str = str()
+    data: list = field(default_factory=list)    # List of time-val, sample-val tuples
+
+    def info(self):
+        print("================================================================")
+        print("Sensor-data INFO")
+        print("================================================================")
+        print(f"Hub name: {self.hub_name}")
+        print(f"Hub ID: {self.hub_id}")
+        print(f"Channel name: {self.ch_name}")
+        print(f"Description: {self.ch_desc}")
+        print(f"Channel ID: {self.ch_id}")
+
+    def show(self):
+        self.info()
+        #
+        print("----------------------------------------------------------------")
+        print("Data:")
+        for tv_pair in self.data:
+            time_val, sample_val = tv_pair
+            print(f"Time: {time_val:.3f}\t\tValue = {sample_val:.3f} {self.unit}")
+        print("----------------------------------------------------------------\n")
+
+    def get(self):
+        return asdict(self)
+
 
 
 # *************************************************** DB 'STORE' functions ************************************************************* 
@@ -186,7 +221,43 @@ def show_data_from_hub(id: int = -1, ch_name: str = None) -> None:
         print(f"INFO: did not find channel named '{ch_name}'!")
 
 
-# Test-helpers:
+@db_session
+def get_sensor_data(hub_id: int = -1, ch_name: str = None) -> None:
+    hub = None
+    if hub_id < 0:
+        print("Invalid ID given! Cannot proceed ...")       # Redundant - will be caught by exception-check below anyway, but OK here ...
+        return None
+    # Get hub:
+    try:
+        hub = SensorHub[hub_id]    
+        if hub is None:
+            print(f"No 'SensorHub' entity w. ID {id} found!! ID={id} non-existent!")            
+            return          
+    except Exception as ex:
+        print(f"Query for 'SensorHub' entity w. ID {id} exploded!! Resaon: {ex}")
+        return
+    #
+    # Get channel:
+    channel_query = hub.channels.select(lambda cd: cd.from_channel.name == ch_name)
+    channel = channel_query.first()
+    if channel:
+        print(f"Got {len(channel.data_points)} data-points from channel '{ch_name}' of hub entity {id} named '{hub.name}' ...\n")
+    else:
+        print(f"ERROR: channel named '{ch_name}' NOT found! Could not GET sensor-data ...\n")
+        return None
+    # Get channel attributes:
+    unit = channel.from_channel.si_unit
+    description = channel.from_channel.description 
+    ch_id = channel.ch_id
+    x_vals = channel.time_points
+    y_vals = channel.data_points
+    # Make data-tuple:
+    time_series_data = list(zip(x_vals, y_vals))    # TODO: make an additional 'TimeSeriesDataPoint' dataclass?
+    #
+    return SensorData(hub_name=hub.name, hub_id=hub_id, ch_name=ch_name, ch_desc=description, ch_id=ch_id, unit=unit, data=time_series_data)
+
+
+# ******************************************************* Test-helpers: ********************************************************************
 
 def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int = 100, factor: float = 0.025) -> list:
     start_time = time.time()
@@ -210,6 +281,9 @@ def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int
 # ***************************** FUNCTIONAL TEST ******************************************
 
 if __name__ == "__main__":
+    # Create database tables (required before calling 'db_session' functions):
+    db.generate_mapping(create_tables=True)
+    # Fill DB w. stuff ...
     create_channels_and_hubs()
     create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA380_temp', 'ADXL255_accel', 'FXS3008_pressure'])
     create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA380_temp'])
@@ -231,6 +305,16 @@ if __name__ == "__main__":
     show_data_from_hub(id=533, ch_name='BMA380_humidity')   # OK --> has data now ...
     # Check 4:
     show_data_from_hub(id=533, ch_name='BMA280_temp')       # Should FAIL! (non-existent channel-name ...)
+    #
+    # Test 'get_sensor_data()':
+    UUT = get_sensor_data(hub_id=533, ch_name='BMA380_humidity')
+    UUT.show()
+    sensor_ch_info = UUT.get()
+    print()
+    print(sensor_ch_info)
+    print()
+    print(f"Channel info: {sensor_ch_info.get('ch_desc')}")
+    #
     # Finalize
     db.disconnect()
 
