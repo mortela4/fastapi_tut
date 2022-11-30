@@ -57,6 +57,27 @@ def create_channels_and_hubs():
     SensorHub(ser_no=533, name="TestHub4", channels=(ChannelData(from_channel=bma380_temp)))
 
 
+# Create a single SensorHub entity
+@db_session
+def create_sensor_hub(hub_name: str, ser_no: int, ch_names: list) -> None:
+    # Create SET of 'ChannelData' instances:
+    ch_data_set = set()
+    for ch_name in ch_names:
+        try:
+            ch_data = ChannelData(from_channel=Channel[ch_name])
+            if ch_data:
+                ch_data_set.add(ch_data)
+            else:
+                print(f"ChannelData-instance w. ch-name '{ch_name}' NOT found!")
+        except Exception as ex:
+            print(f"Query for ChannelData-instance w. name '{ch_name}' exploded! Reason: {ex}")
+    #
+    # SensorHub(ser_no=ser_no, name=hub_name, channels=( set([ChannelData(from_channel=Channel[ch_name]) for ch_name in ch_names]) ) )
+    #
+    # Create instance:
+    SensorHub(ser_no=ser_no, name=hub_name, channels=ch_data_set)   
+
+
 # Retrieve from DB:
 @db_session
 def get_entities_and_show_fields():
@@ -152,6 +173,8 @@ def generate_dummy_data(num_samples: int = 10, min_val: int = -100, max_val: int
 
 if __name__ == "__main__":
     create_channels_and_hubs()
+    create_sensor_hub(hub_name="BasicHub", ser_no=666, ch_names=['BMA280_temp', 'ADXL255_accel', 'FXS3008_pressure'])
+    create_sensor_hub(hub_name="BasicHub", ser_no=777, ch_names=['ADXL255_accel', 'FXS3008_pressure', 'BMA280_temp'])
     get_entities_and_show_fields()
     # ts_data = generate_dummy_data()
     # add_data_to_hub(id=533, tsd=ts_data)
