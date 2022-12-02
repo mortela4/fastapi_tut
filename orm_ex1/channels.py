@@ -1,4 +1,6 @@
 """
+@file channels.py
+
 DB model of cyper-physical system w. sensors(IN-values) and actuators(OUT-values), where IN/OUT-channels are represented by 'Channel'-objects.
 """
 
@@ -7,6 +9,9 @@ import time
 from datetime import datetime
 import random
 from dataclasses import dataclass, asdict, field
+# If plotting data is required:
+import matplotlib.pyplot as plt
+
 
 SQL_DEBUG = False
 
@@ -57,6 +62,16 @@ class SensorData():
     start_datetime: float = 0.0
     data: list = field(default_factory=list)    # List of time-val, sample-val tuples
 
+    @property
+    def sensor_data(self):
+        """ Split data-tuples into separate lists """
+        time_values = list()        # List of time-point values
+        sensor_values = list()      # List of sample values
+        for t, v in self.data:
+            time_values.append(t)
+            sensor_values.append(v)
+        return time_values, sensor_values
+    
     def info(self):
         print("================================================================")
         print("Sensor-data INFO")
@@ -84,6 +99,15 @@ class SensorData():
     def get(self):
         return asdict(self)
 
+
+# Helper functions:
+
+def plot_time_series(t_values, y_values, title: str = "Time-series Plot", xlabel: str = 'DeltaTime', ylabel: str = 'Value', 
+                    color: str = 'tab:red', x_relative_size: int = 16, y_relative_size: int = 5, resolution_dpi: int = 100):
+    plt.figure(figsize=(x_relative_size, y_relative_size), dpi=resolution_dpi)
+    plt.plot(t_values, y_values, color=color)
+    plt.gca().set(title=title, xlabel=xlabel, ylabel=ylabel)
+    plt.show()
 
 
 # *************************************************** DB 'STORE' functions ************************************************************* 
@@ -345,14 +369,14 @@ if __name__ == "__main__":
     #
     # Finalize
     db.disconnect()
-
-
-
-
-
-
-
-
-
+    #
+    # And - for fun - plot data ...
+    plot_title = f"Sensor-data from hub {sensor_ch_info.get('hub_id')}, '{sensor_ch_info.get('hub_name')}' channel '{sensor_ch_info.get('ch_name')}'"
+    plot_legend = f"{sensor_ch_info.get('ch_desc')} - in [{sensor_ch_info.get('unit')}]"
+    sensor_data = sensor_ch_info.get('data')
+    #
+    tv, dv = UUT.sensor_data
+    #
+    plot_time_series(t_values=tv, y_values=dv, title=plot_title, ylabel=plot_legend)
 
 
