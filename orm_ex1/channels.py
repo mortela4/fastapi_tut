@@ -351,7 +351,7 @@ if __name__ == "__main__":
     show_data_from_hub(id=533, ch_name='BMA380_humidity')   # OK --> but no data
     # 
     # Add TEMP-data:
-    ts_data = generate_dummy_data(num_samples=15, min_val=15, max_val=96, factor=0.99)
+    ts_data = generate_dummy_data(num_samples=50, min_val=30, max_val=40, factor=0.99)
     add_data_to_hub(id=533, ch_name='BMA380_humidity', tsd=ts_data)
     # Check 3:
     show_data_from_hub(id=533, ch_name='BMA380_humidity')   # OK --> has data now ...
