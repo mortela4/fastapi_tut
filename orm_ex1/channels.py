@@ -106,6 +106,7 @@ def plot_time_series(t_values, y_values, title: str = "Time-series Plot", xlabel
                     color: str = 'tab:red', x_relative_size: int = 16, y_relative_size: int = 5, resolution_dpi: int = 100):
     plt.figure(figsize=(x_relative_size, y_relative_size), dpi=resolution_dpi)
     plt.plot(t_values, y_values, color=color)
+    plt.ylim(0, 100)
     plt.gca().set(title=title, xlabel=xlabel, ylabel=ylabel)
     plt.show()
 
