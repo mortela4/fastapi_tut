@@ -2,6 +2,13 @@
 @file channels.py
 
 DB model of cyper-physical system w. sensors(IN-values) and actuators(OUT-values), where IN/OUT-channels are represented by 'Channel'-objects.
+
+Stand-alone application; provides
+- models
+- DB binding and creation
+- creation of model instances, and WRITE of them to DB
+- READ of data from DB, w. demo of selection based on one or multiple keys
+- presentation (plotting) of data
 """
 
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
