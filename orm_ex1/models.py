@@ -15,10 +15,16 @@ Included in 'Channel' model is
 """
 
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
-import time
+from pydantic.dataclasses import dataclass
 
 
 db = Database()
+
+# Config
+
+class Config:
+    arbitrary_types_allowed = True
+
 
 # Models:
 
@@ -32,6 +38,7 @@ class Channel(db.Entity):
     num_bits = Optional(int, default=16)          # --> TODO: relevant???
     ch_data_sources = Set("ChannelData")
 
+@dataclass(config=Config)
 class ChannelData(db.Entity):
     ch_id = PrimaryKey(int, auto=True)
     start_time = Optional(float, default=0.0)

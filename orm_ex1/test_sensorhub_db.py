@@ -7,9 +7,21 @@
 from datetime import datetime
 import random
 import requests
+import time
 from dataclasses import dataclass, asdict, field
 # If plotting data is required:
 import matplotlib.pyplot as plt
+
+from requests.auth import HTTPBasicAuth
+import requests
+
+
+# Constants:
+API_PORT = 8889
+API_URL = f"http://localhost:{API_PORT}/db/"
+headers = {'Accept': 'application/json'}
+auth = HTTPBasicAuth('apikey', 'test123')
+
 
 # Helper data structures:
 
@@ -144,7 +156,7 @@ def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None
         print(f"ERROR: channel named '{ch_name}' NOT found! Could not add data ...\n")
 
 
-# *************************************************** DB 'LOAD' functions ************************************************************* 
+# *************************************************** DB 'LOAD' functions = GET ************************************************************* 
 
 # Retrieve from DB:
 @db_session
@@ -253,6 +265,10 @@ def get_sensor_data(hub_id: int = -1, ch_name: str = None) -> None:
     time_series_data = list(zip(x_vals, y_vals))    # TODO: make an additional 'TimeSeriesDataPoint' dataclass?
     #
     return SensorData(hub_name=hub.name, hub_id=hub_id, ch_name=ch_name, ch_desc=description, ch_id=ch_id, unit=unit, start_datetime=start_time, data=time_series_data)
+
+
+
+req = requests.get(url, headers=headers, auth=auth)
 
 
 # ******************************************************* Test-helpers: ********************************************************************
