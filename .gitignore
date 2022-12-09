@@ -3,3 +3,4 @@ orm_ex1/database.sqlite
 fast_pony_crud
 orm_ex1/__pycache__/models.cpython-310.pyc
 fast_pony_crud
+orm_ex1/__pycache__/test_sensorhub_db.cpython-38-pytest-6.1.1.pyc
