@@ -2,6 +2,13 @@
 @file channels.py
 
 DB model of cyper-physical system w. sensors(IN-values) and actuators(OUT-values), where IN/OUT-channels are represented by 'Channel'-objects.
+
+Stand-alone application; provides
+- models
+- DB binding and creation
+- creation of model instances, and WRITE of them to DB
+- READ of data from DB, w. demo of selection based on one or multiple keys
+- presentation (plotting) of data
 """
 
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
@@ -106,6 +113,7 @@ def plot_time_series(t_values, y_values, title: str = "Time-series Plot", xlabel
                     color: str = 'tab:red', x_relative_size: int = 16, y_relative_size: int = 5, resolution_dpi: int = 100):
     plt.figure(figsize=(x_relative_size, y_relative_size), dpi=resolution_dpi)
     plt.plot(t_values, y_values, color=color)
+    plt.ylim(0, 100)
     plt.gca().set(title=title, xlabel=xlabel, ylabel=ylabel)
     plt.show()
 
