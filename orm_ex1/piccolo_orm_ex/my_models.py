@@ -37,4 +37,9 @@ class SensorHub(Table):
 # **************************** Functional Test **********************************
 if __name__ == "__main__":
     print(f"Creating SQLite database {DB_NAME} ...")
+    #
+    ch1 = Channel(name="BMA280_temp", )
+
+
+
 
