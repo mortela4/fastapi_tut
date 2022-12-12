@@ -7,6 +7,7 @@ import os
 from fastapi import FastAPI
 from piccolo_api.fastapi.endpoints import FastAPIWrapper
 from piccolo_api.crud.endpoints import PiccoloCRUD
+from piccolo.engine import engine_finder
 from starlette.routing import Mount, Router
 
 from piccolo.conf.apps import AppConfig
@@ -20,6 +21,7 @@ from tables import (
 
 
 USE_FASTAPI = True
+USE_POSTGRESQL = False      # Default: use SQLite ...
 
 CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -42,7 +44,7 @@ if USE_FASTAPI:
     # Endpoints:
 
     FastAPIWrapper(
-        root_url="/api/Channel",
+        root_url="/api/channel/",
         fastapi_app=app,
         piccolo_crud=PiccoloCRUD(
             table=Channel,
@@ -51,7 +53,7 @@ if USE_FASTAPI:
     )
 
     FastAPIWrapper(
-        root_url="/api/channel_data",
+        root_url="/api/channel_data/",
         fastapi_app=app,
         piccolo_crud=PiccoloCRUD(
             table=ChannelData,
@@ -60,7 +62,7 @@ if USE_FASTAPI:
     )
 
     FastAPIWrapper(
-        root_url="/api/sensor_hub",
+        root_url="/api/sensor_hub/",
         fastapi_app=app,
         piccolo_crud=PiccoloCRUD(
             table=SensorHub,
@@ -70,18 +72,31 @@ if USE_FASTAPI:
 else:
     # ****************************** PiccoloCRUD part *********************************
     app = Router([
-    Mount(
-        path='/api/channel',
-        app=PiccoloCRUD(table=Channel, read_only=False),
-    ),
-    Mount(
-        path='/api/channel_data',
-        app=PiccoloCRUD(table=ChannelData, read_only=False),
-    ),
-    Mount(
-        path='/api/sensorhub',
-        app=PiccoloCRUD(table=SensorHub, read_only=False),
-    ),
-])
+        Mount(
+            path='/api/channel',
+            app=PiccoloCRUD(table=Channel, read_only=False),
+        ),
+        Mount(
+            path='/api/channel_data',
+            app=PiccoloCRUD(table=ChannelData, read_only=False),
+        ),
+        Mount(
+            path='/api/sensorhub',
+            app=PiccoloCRUD(table=SensorHub, read_only=False),
+        ),
+    ])
 
 
+# *********************************** DB-connection part (if relevant) *************************************
+
+if USE_POSTGRESQL:
+    @app.on_event("startup")
+    async def open_database_connection_pool():
+        engine = engine_finder()
+        await engine.start_connnection_pool()
+
+
+    @app.on_event("shutdown")
+    async def close_database_connection_pool():
+        engine = engine_finder()
+        await engine.close_connnection_pool()

@@ -7,10 +7,8 @@ from piccolo.engine.sqlite import SQLiteEngine
 from piccolo.table import Table
 from piccolo.columns import ForeignKey, Integer, Varchar, Boolean, Float, Array
 
-DB_NAME = "my_db.sqlite"
+from piccolo_conf import DB
 
-# Define DB to use:
-DB = SQLiteEngine(path=DB_NAME)      # NOTE: should be in a "piccolo_conf.py" file!
 
 # Models:
 
@@ -32,4 +30,14 @@ class SensorHub(Table, tablename="sensor_hub", db=DB):
     ser_no = Integer(required=True)
     name = Varchar(length=100)
     channels = ForeignKey(references=ChannelData)
+
+
+# Create some 'Channel'-entries:
+
+bma280_temp = Channel(name="bma280_temp", description="BMA280 temp reading", si_unit="Celcius")     # Not really a SI-unit but compatible (w. Kelvin) ...
+sht721_hygro = Channel(name="sht721_hygro", description="SHT721 humidity reading", si_unit="%RH")   # Not really a SI-unit whatsoever, butbut ...
+adxl355_accel = Channel(name="adxl355_accel", description="ADXL355 accel reading", si_unit="G") 
+# Persist data:
+if not adxl355_accel.table_exists():
+    adxl355_accel.create_table()
 
