@@ -5,6 +5,7 @@ the APP_CONFIG.
 
 import os
 from fastapi import FastAPI
+from piccolo_admin.endpoints import create_admin
 from piccolo_api.fastapi.endpoints import FastAPIWrapper
 from piccolo_api.crud.endpoints import PiccoloCRUD
 from piccolo.engine import engine_finder
@@ -13,11 +14,7 @@ from starlette.routing import Mount, Router
 from piccolo.conf.apps import AppConfig
 
 # Import DB-entity models:
-from tables import (
-    Channel,
-    ChannelData,
-    SensorHub,
-)
+from tables import Channel, ChannelData, SensorHub
 
 
 USE_FASTAPI = True
@@ -39,7 +36,10 @@ APP_CONFIG = AppConfig(
 if USE_FASTAPI:
     # *********************************** FastAPI """ part *****************************************
 
-    app = FastAPI()
+    app = FastAPI( routes=[
+                Mount("/admin/", create_admin(tables=APP_CONFIG.table_classes)),
+            ],
+        )
 
     # Endpoints:
 
