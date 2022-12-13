@@ -1,5 +1,5 @@
 """
-PiccoloORM sensorhub-related DB-entities.
+PiccoloORM sensor_hub-related DB-entities.
 """
 
 from piccolo.engine.sqlite import SQLiteEngine
@@ -31,13 +31,17 @@ class SensorHub(Table, tablename="sensor_hub", db=DB):
     name = Varchar(length=100)
     channels = ForeignKey(references=ChannelData)
 
+# Create tables:
+Channel.create_table()
+ChannelData.create_table()
+SensorHub.create_table()
 
-# Create some 'Channel'-entries:
+# Create some 'channel'-entries:
 
 bma280_temp = Channel(name="bma280_temp", description="BMA280 temp reading", si_unit="Celcius")     # Not really a SI-unit but compatible (w. Kelvin) ...
 sht721_hygro = Channel(name="sht721_hygro", description="SHT721 humidity reading", si_unit="%RH")   # Not really a SI-unit whatsoever, butbut ...
 adxl355_accel = Channel(name="adxl355_accel", description="ADXL355 accel reading", si_unit="G") 
-# Persist data:
-if not adxl355_accel.table_exists():
-    adxl355_accel.create_table()
 
+# DB.prep_database()
+
+print("DONE with DB!")

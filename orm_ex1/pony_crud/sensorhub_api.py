@@ -6,7 +6,14 @@ import uvicorn
 import os
 
 
-USE_API_KEY = False
+USE_DB_FILE = True
+#
+if USE_DB_FILE:
+    SQLITE_FILE = "sensorhub_db.sqlite"
+else:
+    SQLITE_FILE = ":memory:"
+
+USE_API_KEY = True
 #
 if USE_API_KEY:
     API_TEST_KEY = "test123"
@@ -22,7 +29,7 @@ database_url = os.environ.get('DATABASE_URL')      # If NOT set (i.e. 'None' ret
 if database_url:
     db.bind(provider='postgres', dsn=database_url)
 else: 
-    db.bind(provider='sqlite', filename='sensorhub_db.sqlite', create_db=True)
+    db.bind(provider='sqlite', filename=SQLITE_FILE, create_db=True)
 
 # Map model-classes to tables, and - create tables in DB:
 db.generate_mapping(create_tables=True)
