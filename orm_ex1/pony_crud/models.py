@@ -16,7 +16,7 @@ Included in 'Channel' model is
 
 from pony.orm import Database, PrimaryKey, Required, Optional, Set, db_session, set_sql_debug, FloatArray
 from pydantic.dataclasses import dataclass
-from pydantic import validator
+from pydantic import ConstrainedList, validator
 
 
 db = Database()
@@ -31,7 +31,8 @@ class Config:
 # Models:
 
 class Channel(db.Entity):
-    name = PrimaryKey(str)
+    ch_id = PrimaryKey(int, auto=True)
+    name = Required(str)
     is_output = Optional(bool, default=False)
     description = Optional(str, default="<sensor IN-type>" if is_output else "<actuator OUT-type>")
     si_unit = Optional(str, default="<unitless>")
@@ -40,6 +41,7 @@ class Channel(db.Entity):
     num_bits = Optional(int, default=16)          # --> TODO: relevant???
     ch_data_sources = Set("ChannelData")
 
+"""
 @dataclass(config=Config)
 class ChannelData(db.Entity):
     ch_id = PrimaryKey(int, auto=True)
@@ -58,6 +60,13 @@ class ChannelData(db.Entity):
     def data_point_is_floatarray(cls, v):
         assert isinstance(v, FloatArray), 'must be (PonyORM-)type FloatArray'
         return v
+"""
+class ChannelData(db.Entity):
+    data_id = PrimaryKey(int, auto=True)
+    time_point = Optional(float, default=0.0)
+    data_point = Optional(float, default=0.0)
+    from_channel = Required(Channel)
+    to_hub = Optional("SensorHub")
 
 class SensorHub(db.Entity):
     ser_no = PrimaryKey(int)
