@@ -8,3 +8,4 @@ orm_ex1/piccolo_orm_ex/sensor_hub_app/my_db.sqlite
 orm_ex1/piccolo_orm_ex/sensor_hub_app/__pycache__/piccolo_app.cpython-310.pyc
 *.pyc
 orm_ex1/pony_crud/sensorhub_db.sqlite
+orm_ex1/pony_crud/__pycache__/models.cpython-310.pyc
