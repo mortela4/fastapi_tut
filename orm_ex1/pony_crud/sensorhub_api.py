@@ -258,7 +258,7 @@ if __name__ == "__main__":
     populate_db()
     # Then, check channel-data for some hub(s):
     show_data(hub_id=123)
-    #
+    # Let 'FastPonyCRUD' library AUTOMAGICALLY create GET/PUT/POST/DELETE-endpoints for each entity-model!
     create_crud_routes(db, app, prefix="/test_api", api_key="test123")
     #
     # Run API server - 'uvicorn' will automatically refresh API whenever code changes in folder!
