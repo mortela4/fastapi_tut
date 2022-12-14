@@ -175,20 +175,24 @@ def add_sensor_data(ser_no: int = None, channel_name: str = None, sensor_data: l
 
 
 @db_session
-def get_hub_data(hub_id: int = None) -> dict:
+def get_hub_data(hub_id: int = None, verbose: bool = False) -> dict:
     data_dict = dict()
-    data_query = ChannelData.select(lambda cd: cd.to_hub.ser_no == hub_id)
-    if data_query:
-        used_channels = data_query.from_channel.select()
-        print(f"Hub w. ID={hub_id} gets data from these channels: {}")
-        for channel in used_channels:
-            data = list()
-            for data_set in data_query:
-                tv = data_set.time_point
-                dv = data_set.data_point
-                data.append( (tv, dv))
-                print(f"Data {data_set.data_id}: time={tv}, value={dv}")
-            data_dict[channel.name] = data
+    channel_datas = ChannelData.select(lambda cd: cd.to_hub.ser_no == hub_id)
+    if channel_datas:
+        for ch_data in channel_datas:
+            ch_name = ch_data.from_channel.name
+            #
+            tv = ch_data.time_point
+            dv = ch_data.data_point
+            #
+            if ch_name in data_dict.keys():
+                data_dict[ch_name].append( (tv, dv))
+            else:
+                data = [ (tv, dv) ]
+                data_dict[ch_name] = data
+            if verbose:
+                print(f"Data {ch_data.data_id}: time={tv}, value={dv}, from channel: '{ch_data.from_channel.name}'")
+            
     #
     return data_dict
 
@@ -243,17 +247,17 @@ def show_data(hub_id: int = None, verbose: bool = True) -> None:
     #
     for k, v in dd.items():
         if verbose:
-            print(f"Values from channel {k}: {v}")
+            print(f"Values from channel {k}:\n{v}\n")
         plot_data(ch_name=k, data=v)
 
 
-# ****************************** Run API server ********************************
+# ****************************** Populate DB with some (dummy-)data and run API server ********************************
 
 if __name__ == "__main__":
     # Add some dummy data first:
     populate_db()
     # Then, check channel-data for some hub(s):
-    show_data()
+    show_data(hub_id=123)
     #
     create_crud_routes(db, app, prefix="/test_api", api_key="test123")
     #
