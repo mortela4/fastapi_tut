@@ -41,26 +41,6 @@ class Channel(db.Entity):
     num_bits = Optional(int, default=16)          # --> TODO: relevant???
     ch_data_sources = Set("ChannelData")
 
-"""
-@dataclass(config=Config)
-class ChannelData(db.Entity):
-    ch_id = PrimaryKey(int, auto=True)
-    start_time = Optional(float, default=0.0)
-    time_points = Optional(FloatArray)
-    data_points = Optional(FloatArray)
-    from_channel = Required(Channel)
-    to_hub = Optional("SensorHub")
-
-    @validator('time_points', check_fields=False)
-    def time_point_is_floatarray(cls, v):
-        assert isinstance(v, FloatArray), 'must be (PonyORM-)type FloatArray'
-        return v
-
-    @validator('data_points', check_fields=False)
-    def data_point_is_floatarray(cls, v):
-        assert isinstance(v, FloatArray), 'must be (PonyORM-)type FloatArray'
-        return v
-"""
 class ChannelData(db.Entity):
     data_id = PrimaryKey(int, auto=True)
     time_point = Optional(float, default=0.0)
