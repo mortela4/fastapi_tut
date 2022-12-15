@@ -181,7 +181,7 @@ def add_data_to_hub(id: int = -1, ch_name: str = None, tsd: list = None) -> None
             channel.start_time = time.time()
         for ts_point in tsd:
             time_point, data_point = ts_point
-            channel.time_points.append(time_point - channel.start_time)     # Store delta-time = offset from START-time!
+            channel.time_points.append(channel.start_time - time_point)     # Store delta-time = offset from START-time!
             channel.data_points.append(data_point)
         print(f"Added {len(tsd)} data-points to channel '{ch_name}' of hub entity {id} named '{hub.name}' ...\n")
     else:
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     db.disconnect()
     #
     # And - for fun - plot data ...
-    plot_title = f"Sensor-data from hub {sensor_ch_info.get('hub_id')}, '{sensor_ch_info.get('hub_name')}' channel '{sensor_ch_info.get('ch_name')}'"
+    plot_title = f"Sensor-data from hub {sensor_ch_info.get('hub_id')}, named '{sensor_ch_info.get('hub_name')}': channel = '{sensor_ch_info.get('ch_name')}'"
     plot_legend = f"{sensor_ch_info.get('ch_desc')} - in [{sensor_ch_info.get('unit')}]"
     sensor_data = sensor_ch_info.get('data')
     #
