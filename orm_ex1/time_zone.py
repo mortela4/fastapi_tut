@@ -24,7 +24,7 @@ def show_datetime_info(dt_info: tuple, tz: str = None):
     #
     print(f"DateTime: {dt}")
     tzName = dt.tzname()
-    print(f"""TimeZone name: {"no TZ-name" if tzName is None else tzName}""")
+    print(f"""TimeZone name: {tzName if tzName else "no TZ-name"}""")
     #
     print()
 
